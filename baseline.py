@@ -17,6 +17,9 @@ from keras.models import load_model
 from keras import backend as K
 from sklearn import tree
 from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.gaussian_process import GaussianProcessClassifier
+import time
 
 sys.path.append('/home/alexanderliao/data/GitHub/')
 
@@ -33,16 +36,48 @@ if False:
 	os.environ["CUDA_VISIBLE_DEVICES"] = ""
 
 def evaluate_model():
-	acc = accuracy_score(Ytest,clf.predict(Xtest))
-	print("Accuracy: {}".format(acc))
-	f1 = f1_score(Ytest,clf.predict(Xtest))
-	print("F1 Score: {}".format(f1))
-	jaccard = jaccard_similarity_score(Ytest,clf.predict(Xtest))
-	print("Jaccard Similarity Coefficient : {}".format(jaccard))
-	zero_one = zero_one_loss(Ytest,clf.predict(Xtest))
-	print("Zero-One Loss : {}".format(zero_one))
-	
+	start = time.time()
+	clf.predict(Xtest)
+	end = time.time()
 
+	elapsed = round(float(end-start),4)
+	length = len(Xtest)
+	avg = elapsed/length
+	print("Time taken: {} seconds for {} samples; on average: {}".format(elapsed,length,avg))
+	
+	acc = accuracy_score(Ytest,clf.predict(Xtest)).round(4)
+	print("Accuracy: {}".format(acc))
+	f1 = f1_score(Ytest,clf.predict(Xtest)).round(4)
+	print("F1 Score: {}".format(f1))
+	jaccard = jaccard_similarity_score(Ytest,clf.predict(Xtest)).round(4)
+	print("Jaccard Similarity Coefficient : {}".format(jaccard))
+	zero_one = zero_one_loss(Ytest,clf.predict(Xtest)).round(4)
+	print("Zero-One Loss : {}".format(zero_one))
+		
+def evaluate_model_threshold():
+	start = time.time()
+
+	result = clf.predict(Xtest).reshape(-1)
+	result[result>0.5] = 1
+	result[result<=0.5] = 0
+
+	end = time.time()
+	elapsed = round(float(end-start),4)
+	length = len(Xtest)
+	avg = elapsed/length
+
+	print("Time taken: {} seconds for {} samples; on average: {}".format(elapsed,length,avg))
+
+	acc = accuracy_score(Ytest,result).round(4)
+	print("Accuracy: {}".format(acc))
+	f1 = f1_score(Ytest,result).round(4)
+	print("F1 Score: {}".format(f1))
+	jaccard = jaccard_similarity_score(Ytest,result).round(4)
+	print("Jaccard similarity coefficient : {}".format(jaccard))
+	zero_one = zero_one_loss(Ytest,result).round(4)
+	print("Zero-One Loss : {}".format(zero_one))
+
+print(" ")
 print("Reading training data...")
 Xtrain=pd.read_csv('data/conf_feature_train.csv' ,dtype='double')
 Xtrain=scale(Xtrain.dropna(axis=1).loc[:, ~(Xtrain == 0).any(0)])
@@ -54,7 +89,7 @@ print(Xtrain)
 Ytrain=pd.read_csv('data/conf_label_train.csv' ,dtype='double').dropna(axis=1).values.reshape(-1)
 print(" ")
 print(Ytrain)
-print("Done!")
+print("Training data loaded.")
 print(" ")
 
 print("Reading test data...")
@@ -78,7 +113,7 @@ print("Seed: {}".format(np.random.get_state()[1][0]))
 #Xtrain=Xtrain[0:k-1,:]
 #Ytrain=Ytrain[0:k-1]
 print(" ")
-
+print(len(Xtest))
 
 print("====================================")
 print("Confidence Only: (Classification)")
@@ -91,28 +126,18 @@ print("Neural Network: (Threshold 0.5)")
 print(" ")
 print(" ")
 clf = load_model("conf_baseline.model")
-#evaluate_model()
-result = clf.predict(Xtest).reshape(-1)
-result[result>0.5] = 1
-result[result<=0.5] = 0
+print(" ")
+print(" ")
+evaluate_model_threshold()
 
-acc = accuracy_score(Ytest,result)
-print(" ")
-print(" ")
-print("Accuracy: {}".format(acc))
-f1 = f1_score(Ytest,result)
-print("F1 Score: {}".format(f1))
-jaccard = jaccard_similarity_score(Ytest,result)
-print("Jaccard similarity coefficient : {}".format(jaccard))
-zero_one = zero_one_loss(Ytest,result)
-print("Zero-One Loss : {}".format(zero_one))
 
 print("-------------------------------------")
+"""
 print("Vanilla Support Vector Machine:")
-clf = svm.SVC(n_jobs=4,verbose=True)
+clf = svm.SVC(verbose=True)
 clf.fit(Xtrain,Ytrain)
 evaluate_model()
-
+"""
 
 print("-------------------------------------")
 print("Vanilla Logistic Regression")
@@ -121,29 +146,40 @@ clf.fit(Xtrain, Ytrain)
 evaluate_model()
 
 print("-------------------------------------")
-print("Vanilla Bayesian Ridge Regression")
+print("Vanilla Bayesian Ridge Regression (Threshold 0.5)")
 clf = linear_model.BayesianRidge(verbose=True)
+clf.fit(Xtrain, Ytrain)
+evaluate_model_threshold()
+
+print("-------------------------------------")
+print("Gaussian Naive Bayes")
+clf = GaussianNB()
 clf.fit(Xtrain, Ytrain)
 evaluate_model()
 
+print("-------------------------------------")
+print("Gaussian Process Classifier (on 10k samples)")
+clf = GaussianProcessClassifier()
+clf.fit(Xtrain[0:9999,:], Ytrain[0:9999,:])
+evaluate_model()
 
 print("-------------------------------------")
 print("Vanilla Decision Tree")
-clf = tree.DecisionTreeClassifier(n_jobs=4)
+clf = tree.DecisionTreeClassifier()
 clf.fit(Xtrain, Ytrain)
 evaluate_model()
 
 print("-------------------------------------")
 print("Vanilla Random Forest")
-clf = AdaBoostClassifier(DecisionTreeClassifier(max_depth=1),
-                         algorithm="SAMME",
-                         n_estimators=200)
+clf = RandomForestClassifier(n_jobs=4)
 clf.fit(Xtrain, Ytrain)
 evaluate_model()
 
 print("-------------------------------------")
 print("AdaBoosted Decision Free")
-clf = RandomForestClassifier(n_jobs=4)
+clf = AdaBoostClassifier(tree.DecisionTreeClassifier(max_depth=1),
+                         algorithm="SAMME",
+                         n_estimators=200)
 clf.fit(Xtrain, Ytrain)
 evaluate_model()
 
