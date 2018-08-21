@@ -42,8 +42,8 @@ def evaluate_model():
 
 	elapsed = round(float(end-start),4)
 	length = len(Xtest)
-	avg = elapsed/length
-	print("Time taken: {} seconds for {} samples; on average: {}".format(elapsed,length,avg))
+	avg = round(elapsed/length,4)
+	print("Time taken: {} seconds for evaluation on {} samples; on average: {}".format(elapsed,length,avg))
 	
 	acc = accuracy_score(Ytest,clf.predict(Xtest)).round(4)
 	print("Accuracy: {}".format(acc))
@@ -53,6 +53,12 @@ def evaluate_model():
 	print("Jaccard Similarity Coefficient : {}".format(jaccard))
 	zero_one = zero_one_loss(Ytest,clf.predict(Xtest)).round(4)
 	print("Zero-One Loss : {}".format(zero_one))
+	prec = precision_score(Ytest,clf.predict(Xtest)).round(4)
+	print("Precision : {}".format(prec))
+	rec = recall_score(Ytest,clf.predict(Xtest)).round(4)
+	print("Recall : {}".format(rec))
+	matt = matthews_corrcoef(Ytest,clf.predict(Xtest)).round(4)
+	print("Matthews Correlation Coefficient (MCC) : {}".format(matt))
 		
 def evaluate_model_threshold():
 	start = time.time()
@@ -64,9 +70,9 @@ def evaluate_model_threshold():
 	end = time.time()
 	elapsed = round(float(end-start),4)
 	length = len(Xtest)
-	avg = elapsed/length
+	avg = round(elapsed/length,4)
 
-	print("Time taken: {} seconds for {} samples; on average: {}".format(elapsed,length,avg))
+	print("Time taken: {} seconds for evaluation on {} samples; on average: {}".format(elapsed,length,avg))
 
 	acc = accuracy_score(Ytest,result).round(4)
 	print("Accuracy: {}".format(acc))
@@ -76,6 +82,13 @@ def evaluate_model_threshold():
 	print("Jaccard similarity coefficient : {}".format(jaccard))
 	zero_one = zero_one_loss(Ytest,result).round(4)
 	print("Zero-One Loss : {}".format(zero_one))
+	prec = precision_score(Ytest,result).round(4)
+	print("Precision : {}".format(prec))
+	rec = recall_score(Ytest,result).round(4)
+	print("Recall : {}".format(rec))
+	matt = matthews_corrcoef(Ytest,result).round(4)
+	print("Matthews Correlation Coefficient (MCC) : {}".format(matt))
+
 
 print(" ")
 print("Reading training data...")
@@ -132,12 +145,50 @@ evaluate_model_threshold()
 
 
 print("-------------------------------------")
-"""
-print("Vanilla Support Vector Machine:")
-clf = svm.SVC(verbose=True)
-clf.fit(Xtrain,Ytrain)
+
+print("Support Vector Machine with RBF Kernel:")
+if(os.path.isfile("SVM_RBF.sav") ):
+	clf = pickle.load(open("SVM_RBF.sav", 'rb'))
+else:
+	clf = svm.SVC(verbose=True)
+	clf.fit(Xtrain,Ytrain)
+	pickle.dump(model, open("SVM_RBF.sav", 'wb'))
 evaluate_model()
-"""
+
+print("-------------------------------------")
+
+print("Support Vector Machine with Sigmoid Kernel:")
+if(os.path.isfile("SVM_Sigmoid.sav") ):
+	clf = pickle.load(open("SVM_Sigmoid.sav", 'rb'))
+else:
+	clf = svm.SVC(kernel='sigmoid',verbose=True)
+	clf.fit(Xtrain,Ytrain)
+	pickle.dump(model, open("SVM_Sigmoid.sav", 'wb'))
+evaluate_model()
+
+
+print("-------------------------------------")
+
+print("Support Vector Machine with Linear Kernel and L2 Penalization:")
+if(os.path.isfile("SVM_Linear_L2.sav") ):
+	clf = pickle.load(open("SVM_Linear_L2.sav", 'rb'))
+else:
+	clf = svm.LinearSVC(verbose=True)
+	clf.fit(Xtrain,Ytrain)
+	pickle.dump(model, open("SVM_Linear_L2.sav", 'wb'))
+evaluate_model()
+
+print("-------------------------------------")
+
+print("Support Vector Machine with Linear Kernel and L1 Penalization:")
+if(os.path.isfile("SVM_Linear_L2.sav") ):
+	clf = pickle.load(open("SVM_Linear_L1.sav", 'rb'))
+else:
+	clf = svm.LinearSVC(penalty='l1',verbose=True)
+	clf.fit(Xtrain,Ytrain)
+	pickle.dump(model, open("SVM_Linear_L1.sav", 'wb'))
+evaluate_model()
+
 
 print("-------------------------------------")
 print("Vanilla Logistic Regression")
@@ -159,9 +210,14 @@ evaluate_model()
 
 print("-------------------------------------")
 print("Gaussian Process Classifier (on 10k samples)")
-clf = GaussianProcessClassifier()
-clf.fit(Xtrain[0:9999,:], Ytrain[0:9999,:])
+if(os.path.isfile("GPC.sav") ):
+	clf = pickle.load(open("GPC.sav", 'rb'))
+else:
+	clf = GaussianProcessClassifier()
+	clf.fit(Xtrain[0:9999,:], Ytrain[0:9999])
+	pickle.dump(model, open("GPC.sav", 'wb'))
 evaluate_model()
+
 
 print("-------------------------------------")
 print("Vanilla Decision Tree")
