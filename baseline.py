@@ -20,8 +20,14 @@ from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier
 from sklearn.naive_bayes import GaussianNB
 from sklearn.gaussian_process import GaussianProcessClassifier, GaussianProcessRegressor
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.model_selection import train_test_split
+
+import xgboost as xgb
+import lightgbm as lgbm
 import time
-import pickle
+import pickle 
+from estimation_only import nn_1
 
 
 sys.path.append('/home/alexanderliao/data/GitHub/')
@@ -65,7 +71,7 @@ def class_evaluate_model():
 
 def reg_evaluate_model():
 	start = time.time()
-	clf.predict(Xtest)
+	result=clf.predict(Xtest)
 	end = time.time()
 
 	elapsed = round(float(end-start),4)
@@ -73,13 +79,13 @@ def reg_evaluate_model():
 	avg = round(elapsed/length,4)
 	print("Time taken: {} seconds for evaluation on {} samples; on average: {}".format(elapsed,length,avg))
 	
-	mae = mean_absolute_error(Ytest,clf.predict(Xtest)).round(4)
+	mae = mean_absolute_error(Ytest,result).round(4)
 	print("Mean Absolute Error: {}".format(mae))
 
-	mse = mean_squared_error(Ytest,clf.predict(Xtest)).round(4)
+	mse = mean_squared_error(Ytest,result).round(4)
 	print("Mean Squared Error: {}".format(mse))
 
-	evs = explained_variance_score(Ytest,clf.predict(Xtest)).round(4)
+	evs = explained_variance_score(Ytest,result).round(4)
 	print("Explained Variance Error: {}".format(evs))
 	
 def class_evaluate_model_threshold():
@@ -158,7 +164,7 @@ if False:
 
 	print(" ")
 
-	"""
+	
 	print("-------------------------------------")
 	print("Neural Network: (Threshold 0.5)")
 	print(" ")
@@ -167,8 +173,8 @@ if False:
 	print(" ")
 	print(" ")
 	class_evaluate_model_threshold()
-	"""
-
+	
+	
 	print("-------------------------------------")
 
 	print("Support Vector Machine with RBF Kernel:")
@@ -206,14 +212,14 @@ if False:
 	print("-------------------------------------")
 
 	print("Support Vector Machine with Linear Kernel and L1 Penalization:")
-	if(os.path.isfile("SVM_Linear_L2.sav") ):
+	if(os.path.isfile("SVM_Linear_L1.sav") ):
 		clf = pickle.load(open("SVM_Linear_L1.sav", 'rb'))
 	else:
 		clf = svm.LinearSVC(penalty='l1',verbose=True)
 		clf.fit(Xtrain,Ytrain)
 		pickle.dump(clf, open("SVM_Linear_L1.sav", 'wb'))
 	class_evaluate_model()
-
+	
 
 	print("-------------------------------------")
 	print("Vanilla Logistic Regression")
@@ -264,6 +270,33 @@ if False:
 	clf.fit(Xtrain, Ytrain)
 	class_evaluate_model()
 
+	print("-------------------------------------")
+	print("XGboost")
+	clf = xgb.XGBClassifier(silent=False, n_jobs=4, n_estimators=100, max_depth=1, learning_rate=0.1, subsample=0.5)
+	clf.fit(Xtrain, Ytrain)
+	class_evaluate_model_threshold()
+
+	params = {
+    'objective' :'binary',
+    'learning_rate' : 0.02,
+    'num_leaves' : 76,
+    'feature_fraction': 0.64, 
+    'bagging_fraction': 0.8, 
+    'bagging_freq':1,
+    'boosting_type' : 'gbdt',
+    'metric': 'binary_logloss'
+	}
+
+	print("-------------------------------------")
+	print("LightGBM (Threshold 0.5)")
+	Xt, Xv, Yt, Yv = train_test_split(Xtrain,Ytrain,test_size=0.2)
+	d_train = lgbm.Dataset(Xt, Yt)
+	d_valid = lgbm.Dataset(Xv, Yv)
+	clf = lgbm.train(params, d_train, 5000, valid_sets=[d_valid], verbose_eval=50, early_stopping_rounds=100)
+	class_evaluate_model_threshold()
+
+	
+
 if True:
 	print("====================================")
 	print("Estimation Only: (Regression)")
@@ -288,7 +321,8 @@ if True:
 	Xtest=pd.read_csv('data/jacob_feature_test.csv' ,dtype='double')
 	Xtest=scale(Xtest.dropna(axis=1).loc[:, ~(Xtest == 0).any(0)])
 
-	Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1).values
+	Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1)
+	Ytest = Ytest.loc[:, ~(Ytest == 0).any(0)]
 	print("Done!")
 	print(" ")
 
@@ -305,6 +339,16 @@ if True:
 	#Xtrain=Xtrain[0:k-1,:]
 	#Ytrain=Ytrain[0:k-1]
 	print(" ")
+
+	print("-------------------------------------")
+	print("Neural Network: ")
+	print(" ")
+	print(" ")
+	clf = nn_1(len(Xtrain[0,:]))
+	clf.load_weights("jacob_baseline.model")
+	print(" ")
+	print(" ")
+	reg_evaluate_model()
 
 	print("-------------------------------------")
 	print("Linear Regression")
@@ -335,3 +379,34 @@ if True:
 		clf.fit(Xtrain[0:9999,:], Ytrain[0:9999])
 		pickle.dump(clf, open("GPR.sav", 'wb'))
 	reg_evaluate_model()
+
+	print("-------------------------------------")
+	print("Nearest Neighbors Regression")
+	clf = KNeighborsRegressor()
+	clf.fit(Xtrain, Ytrain)
+	reg_evaluate_model()
+
+	print("-------------------------------------")
+	print("XGboost")
+	clf = xgb.XGBRegressor(silent=False, n_jobs=4, n_estimators=100, max_depth=1, learning_rate=0.1, subsample=0.5)
+	clf.fit(Xtrain, Ytrain)
+	reg_evaluate_model()
+
+	params = {
+    'objective' :'binary',
+    'learning_rate' : 0.02,
+    'num_leaves' : 76,
+    'feature_fraction': 0.64, 
+    'bagging_fraction': 0.8, 
+    'bagging_freq':1,
+    'boosting_type' : 'gbdt',
+    'metric': 'binary_logloss'
+	}
+
+	print("-------------------------------------")
+	print("LightGBM")
+	Xt, Xv, Yt, Yv = train_test_split(Xtrain,Ytrain,test_size=0.2)
+	d_train = lgbm.Dataset(Xt, Yt)
+	d_valid = lgbm.Dataset(Xv, Yv)
+	clf = lgbm.train(params, d_train, 5000, valid_sets=[d_valid], verbose_eval=50, early_stopping_rounds=100)
+	class_evaluate_model_threshold()

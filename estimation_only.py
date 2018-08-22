@@ -15,8 +15,13 @@ import keras
 import json
 import sys
 import os
+from sklearn.metrics import r2_score
 #a=pd.read_csv('featureTrain.csv' ,dtype='double')
 #print(a)
+
+import tensorflow as tf
+def huber_loss(y_true, y_pred):
+    return tf.losses.huber_loss(y_true,y_pred)
 
 sys.path.append('/home/alexanderliao/data/GitHub/')
 from kerasresnet import resnet
@@ -28,7 +33,7 @@ Ytrain=pd.read_csv('labelTrain.csv' ,dtype='double').dropna(axis=1)
 Xtest=scale(pd.read_csv('featureTest.csv' ,dtype='double').dropna(axis=1),axis=0)
 Ytest=pd.read_csv('labelTest.csv' ,dtype='double').dropna(axis=1)
 """
-k=10000
+
 
 print("Reading training data...")
 Xtrain=pd.read_csv('data/jacob_feature_train.csv' ,dtype='double')
@@ -39,11 +44,12 @@ Xtrain=scale(Xtrain.dropna(axis=1).loc[:, ~(Xtrain == 0).any(0)])
 #Xtrain=Xtrain.reshape((-1,1,len(Xtrain[0,:]),1))
 
 #Xtrain=Xtrain.reshape((k,2,-1,1))
+
 print(" ")
 print("Sanity Check:")
 print(Xtrain)
 Ytrain=pd.read_csv('data/jacob_label_train.csv' ,dtype='double').dropna(axis=1)
-Ytrain=Ytrain.loc[:, ~(Ytrain == 0).any(0)]
+Ytrain=minmax_scale(Ytrain.loc[:, ~(Ytrain == 0).any(0)],feature_range=(-1,1))
 
 print("Done!")
 #Ytrain=Ytrain.values.reshape((-1,1))
@@ -62,7 +68,7 @@ Xtest=scale(Xtest.dropna(axis=1).loc[:, ~(Xtest == 0).any(0)])
 #Xtest=Xtest.reshape((300,2,-1,1))
 
 Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1)
-Ytest=Ytest.loc[:, ~(Ytest == 0).any(0)]
+Ytest=minmax_scale(Ytest.loc[:, ~(Ytest == 0).any(0)],feature_range=(-1,1))
 print("Done!")
 #Ytest=Ytest.values.reshape((-1,1))
 
@@ -93,6 +99,7 @@ numpy.random.seed(7)
 #print(type(Ytrain))
 
 def nn_1(input_length):
+    model = Sequential()
     model = Sequential()
     model.add(Dense(32, input_dim=input_length, kernel_initializer='RandomUniform'))
     ##model.add(BatchNormalization())
@@ -131,7 +138,7 @@ def nn_1(input_length):
     model.add(BatchNormalization())
     model.add(PReLU())
     model.add(Dropout(0.5))
-    
+
     model.add(Dense(1050, input_dim=2100, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(PReLU())
@@ -185,11 +192,19 @@ def routine(Ytest,nn_predictor):
     acc=nn_predictor.evaluate(Xtest,Ytest,verbose=1)
     print(acc)
     string=str(datetime.now()).replace(".","").replace(" ","")+'-'+str(round(acc,2))
-    nn_predictor.save(string+'.hdf5')
-    shutil.move(string+'.hdf5','./models/'+string+'.hdf5')
+    nn_predictor.save(string+'.model')
+    shutil.move(string+'.model','./models/'+string+'.model')
     #print(r2_score(Ytest,nn_predictor.predict(Xtest)))
     return string
 
+def baseline(Ytest,nn_predictor):
+    acc=r2_score(Ytest,nn_predictor.predict(Xtest))
+    print(acc)
+    string="jacob_baseline"
+    nn_predictor.save(string+'.model')
+    #shutil.move(string+'.model','./models/'+string+'.model')
+    #print(r2_score(Ytest,nn_predictor.predict(Xtest)))
+    return string
 
 #nn_predictor=resnet.ResnetBuilder().build_resnet_18([1,1,14],1)
 #nn_predictor=resnet.ResnetBuilder().build([1,1,14],1,'basic_block',8)
@@ -201,7 +216,7 @@ opt = optimizers.RMSprop(lr=0.01)
 #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
 
 nn_predictor = nn_1(len(Xtrain[0,:]))
-
+print(len(Xtrain[0,:]))
 print(nn_predictor.summary())
 
 print("Cleaning directories...")
@@ -224,11 +239,13 @@ with tf.device('/gpu:0'):
         history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=[callback], shuffle=True)
         
         print(type(history))
-        string=routine(Ytest,nn_predictor)
-        json.dump(history.history, open( string+".json", "w" ))
-        shutil.move(string+'.json','./histories/'+string+'.pickle')
+        baseline(Ytest,nn_predictor)
+        #string=routine(Ytest,nn_predictor)
+        #json.dump(history.history, open( string+".json", "w" ))
+        #shutil.move(string+'.json','./histories/'+string+'.pickle')
     except (KeyboardInterrupt, SystemExit):
-        routine(Ytest,nn_predictor)
+        #routine(Ytest,nn_predictor)
+        baseline(Ytest,nn_predictor)
 
 
 
