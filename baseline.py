@@ -46,7 +46,7 @@ if False:
 
 def class_evaluate_model():
 	start = time.time()
-	clf.predict(Xtest)
+	result = clf.predict(Xtest)
 	end = time.time()
 
 	elapsed = round(float(end-start),4)
@@ -54,19 +54,19 @@ def class_evaluate_model():
 	avg = round(elapsed/length,4)
 	print("Time taken: {} seconds for evaluation on {} samples; on average: {}".format(elapsed,length,avg))
 	
-	acc = accuracy_score(Ytest,clf.predict(Xtest)).round(4)
+	acc = accuracy_score(Ytest,result).round(4)
 	print("Accuracy: {}".format(acc))
-	f1 = f1_score(Ytest,clf.predict(Xtest)).round(4)
+	f1 = f1_score(Ytest,result).round(4)
 	print("F1 Score: {}".format(f1))
-	jaccard = jaccard_similarity_score(Ytest,clf.predict(Xtest)).round(4)
+	jaccard = jaccard_similarity_score(Ytest,result).round(4)
 	print("Jaccard Similarity Coefficient : {}".format(jaccard))
-	zero_one = zero_one_loss(Ytest,clf.predict(Xtest)).round(4)
+	zero_one = zero_one_loss(Ytest,result).round(4)
 	print("Zero-One Loss : {}".format(zero_one))
-	prec = precision_score(Ytest,clf.predict(Xtest)).round(4)
+	prec = precision_score(Ytest,result).round(4)
 	print("Precision : {}".format(prec))
-	rec = recall_score(Ytest,clf.predict(Xtest)).round(4)
+	rec = recall_score(Ytest,result).round(4)
 	print("Recall : {}".format(rec))
-	matt = matthews_corrcoef(Ytest,clf.predict(Xtest)).round(4)
+	matt = matthews_corrcoef(Ytest,result).round(4)
 	print("Matthews Correlation Coefficient (MCC) : {}".format(matt))
 
 def reg_evaluate_model():
@@ -86,7 +86,10 @@ def reg_evaluate_model():
 	print("Mean Squared Error: {}".format(mse))
 
 	evs = explained_variance_score(Ytest,result).round(4)
-	print("Explained Variance Error: {}".format(evs))
+	print("Explained Variance Score: {}".format(evs))
+
+	r2 = r2_score(Ytest,result).round(4)
+	print("R2 Score: {}".format(r2))
 	
 def class_evaluate_model_threshold():
 	start = time.time()
@@ -154,7 +157,7 @@ print("Seed: {}".format(np.random.get_state()[1][0]))
 #Xtrain=Xtrain[0:k-1,:]
 #Ytrain=Ytrain[0:k-1]
 
-if False:
+if True:
 	print(" ")
 	#print(len(Xtest))
 
@@ -208,18 +211,6 @@ if False:
 		clf.fit(Xtrain,Ytrain)
 		pickle.dump(clf, open("SVM_Linear_L2.sav", 'wb'))
 	class_evaluate_model()
-
-	print("-------------------------------------")
-
-	print("Support Vector Machine with Linear Kernel and L1 Penalization:")
-	if(os.path.isfile("SVM_Linear_L1.sav") ):
-		clf = pickle.load(open("SVM_Linear_L1.sav", 'rb'))
-	else:
-		clf = svm.LinearSVC(penalty='l1',verbose=True)
-		clf.fit(Xtrain,Ytrain)
-		pickle.dump(clf, open("SVM_Linear_L1.sav", 'wb'))
-	class_evaluate_model()
-	
 
 	print("-------------------------------------")
 	print("Vanilla Logistic Regression")
@@ -312,6 +303,7 @@ if True:
 	print(" ")
 	print(Xtrain)
 	Ytrain=pd.read_csv('data/jacob_label_train.csv' ,dtype='double').dropna(axis=1).values
+	Ytrain=minmax_scale(Ytrain[:, ~(Ytrain == 0).any(0)],feature_range=(-1,1))
 	print(" ")
 	print(Ytrain)
 	print("Training data loaded.")
@@ -321,8 +313,8 @@ if True:
 	Xtest=pd.read_csv('data/jacob_feature_test.csv' ,dtype='double')
 	Xtest=scale(Xtest.dropna(axis=1).loc[:, ~(Xtest == 0).any(0)])
 
-	Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1)
-	Ytest = Ytest.loc[:, ~(Ytest == 0).any(0)]
+	Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1).values
+	Ytest=minmax_scale(Ytest[:, ~(Ytest == 0).any(0)],feature_range=(-1,1))
 	print("Done!")
 	print(" ")
 
@@ -345,7 +337,8 @@ if True:
 	print(" ")
 	print(" ")
 	clf = nn_1(len(Xtrain[0,:]))
-	clf.load_weights("jacob_baseline.model")
+	clf.load_weights("jacob_baseline.hdf5")
+	#clf = load_model("jacob_baseline.hdf5")
 	print(" ")
 	print(" ")
 	reg_evaluate_model()
@@ -362,13 +355,13 @@ if True:
 	clf.fit(Xtrain, Ytrain)
 	reg_evaluate_model()
 
-	"""
+	
 	print("-------------------------------------")
 	print("Vanilla Decision Tree")
 	clf = tree.DecisionTreeRegressor()
 	clf.fit(Xtrain, Ytrain)
 	reg_evaluate_model()
-	"""
+	
 
 	print("-------------------------------------")
 	print("Gaussian Process Regression (trained on 10k samples)")
@@ -376,37 +369,14 @@ if True:
 		clf = pickle.load(open("GPR.sav", 'rb'))
 	else:
 		clf = GaussianProcessRegressor()
-		clf.fit(Xtrain[0:9999,:], Ytrain[0:9999])
+		clf.fit(Xtrain[0:9999,:], Ytrain[0:9999,:])
 		pickle.dump(clf, open("GPR.sav", 'wb'))
 	reg_evaluate_model()
 
+	
 	print("-------------------------------------")
 	print("Nearest Neighbors Regression")
 	clf = KNeighborsRegressor()
 	clf.fit(Xtrain, Ytrain)
 	reg_evaluate_model()
-
-	print("-------------------------------------")
-	print("XGboost")
-	clf = xgb.XGBRegressor(silent=False, n_jobs=4, n_estimators=100, max_depth=1, learning_rate=0.1, subsample=0.5)
-	clf.fit(Xtrain, Ytrain)
-	reg_evaluate_model()
-
-	params = {
-    'objective' :'binary',
-    'learning_rate' : 0.02,
-    'num_leaves' : 76,
-    'feature_fraction': 0.64, 
-    'bagging_fraction': 0.8, 
-    'bagging_freq':1,
-    'boosting_type' : 'gbdt',
-    'metric': 'binary_logloss'
-	}
-
-	print("-------------------------------------")
-	print("LightGBM")
-	Xt, Xv, Yt, Yv = train_test_split(Xtrain,Ytrain,test_size=0.2)
-	d_train = lgbm.Dataset(Xt, Yt)
-	d_valid = lgbm.Dataset(Xv, Yv)
-	clf = lgbm.train(params, d_train, 5000, valid_sets=[d_valid], verbose_eval=50, early_stopping_rounds=100)
-	class_evaluate_model_threshold()
+	

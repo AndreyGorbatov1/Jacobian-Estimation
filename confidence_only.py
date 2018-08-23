@@ -170,7 +170,7 @@ if __name__ == "__main__":
 
     # fix random seed for reproducibility
     numpy.random.seed(7)
-    print("Seed: {}".format(numpy.random.get_state()))
+    print("Seed: {}".format(numpy.random.get_state()[0][1]))
     #Xtrain=numpy.nonzero(numpy.loadtxt('featureTrain.csv',dtype='float32',delimiter=','))
     #Ytrain=numpy.loadtxt('labelTrain.csv',dtype='float32',delimiter=',')
     #Xtrain=Xtrain[1:30000,:]
