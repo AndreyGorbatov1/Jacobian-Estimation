@@ -20,6 +20,12 @@ from keras.models import load_model
 import tensorflow as tf
 import pickle
 
+import sys
+
+orig_stdout = sys.stdout
+f = open('JacobNet_training_log.txt', 'w')
+sys.stdout = f
+
 def huber_loss(y_true, y_pred):
 	return tf.losses.huber_loss(y_true,y_pred)
 
@@ -49,19 +55,23 @@ conf_Ytest=pd.read_csv('data/conf_label_dyna_test.csv' ,dtype='double').dropna(a
 print("Done!")
 
 print("Reading estimation training data...")
-jacob_Xtrain=pd.read_csv('data/jacob_feature_train.csv' ,dtype='double')
+jacob_Xtrain=pd.read_csv('data/jacob0_feature_train.csv' ,dtype='double')
 jacob_Xtrain=scale(jacob_Xtrain.dropna(axis=1).loc[:, ~(jacob_Xtrain == 0).any(0)])
 print(" ")
 
-jacob_Ytrain=pd.read_csv('data/jacob_label_train.csv' ,dtype='double').dropna(axis=1)
+jacob_Ytrain=pd.read_csv('data/jacob0_label_train.csv' ,dtype='double').dropna(axis=1)
+print("Shape before augmentation: ")
+print(jacob_Ytrain.shape)
 jacob_Ytrain=minmax_scale(jacob_Ytrain.loc[:, ~(jacob_Ytrain == 0).any(0)],feature_range=(-1,1))
+print("Shape after augmentation: ")
+print(jacob_Ytrain.shape)
 print("Done!")
 
 print("Reading estimation test data...")
-jacob_Xtest=pd.read_csv('data/jacob_feature_test.csv' ,dtype='double')
+jacob_Xtest=pd.read_csv('data/jacob0_feature_test.csv' ,dtype='double')
 jacob_Xtest=scale(jacob_Xtest.dropna(axis=1).loc[:, ~(jacob_Xtest == 0).any(0)])
 
-jacob_Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1)
+jacob_Ytest=pd.read_csv('data/jacob0_label_test.csv' ,dtype='double').dropna(axis=1)
 jacob_Ytest=minmax_scale(jacob_Ytest.loc[:, ~(jacob_Ytest == 0).any(0)],feature_range=(-1,1))
 print("Done!")
 
@@ -113,7 +123,7 @@ def conf_net(encoded):
 	f=PReLU()(f)
 	f=Dropout(0.5)(f)
 	
-	f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=Dense(1024, input_dim=1050, kernel_initializer='RandomUniform')(f)
 	f=BatchNormalization()(f)
 	f=PReLU()(f)
 	f=Dropout(0.5)(f)
@@ -187,7 +197,7 @@ def est_net(encoded):
 
 	f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
 	##f=BatchNormalization()(f)
-	f=Dense(25, activation="linear")(f)
+	f=Dense(22, activation="linear")(f)
 	return f
 
 
@@ -265,7 +275,7 @@ model_checkpoint2 = keras.callbacks.ModelCheckpoint("./pretrained_checkpt.model"
 callbacks2 = [early_stopping,model_checkpoint2,tensorboard]
 
 print("==============================================")
-print("Start training: check progress by typing: tensorboard --logdir ./graph --port 6028")
+print("Start training: check progress by entering: tensorboard --logdir ./graph --port 6028")
 print("---------------------------------------------")
 print("Pre-training encoder on estimation net:")
 with tf.device('/gpu:0'):
@@ -278,15 +288,14 @@ with tf.device('/gpu:0'):
 			print("  ")
 		else:
 			print("Pretrained model not found, training...")
-			pretrained_hist=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=100, validation_split=val_split,verbose=1, callbacks=callbacks2, shuffle=True)
+			pretrained_hist=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=100, validation_split=val_split,verbose=0, callbacks=callbacks2, shuffle=True)
 			encoding.save("pretrained.model")
 			with open('./pretrained_hist', 'wb') as file_pi:
 				pickle.dump(pretrained_hist.history, file_pi)
 			encoding=load_model("pretrained.model")
 			inp = encoding.input
-			estimation = est_net_non_encoder(encoded)
-			estimation_model = Model(inp, estimation)
-			estimation_model.compile(optimizer="adam", loss="mean_squared_error")
+			
+			
 		print("Dataset shape: (X;Y)")
 		print(jacob_Xtrain.shape)
 		print(jacob_Ytrain.shape)
@@ -306,9 +315,14 @@ with tf.device('/gpu:0'):
 		compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
 		#compute_r2(conf_Ytest,conf_Xtest,confidence_model)
 		#baseline(Ytest,nn_predictor)
+
+estimation = est_net_non_encoder(encoding)
+estimation_model = Model(inp, estimation)
+estimation_model.compile(optimizer="adam", loss="mean_squared_error")
+
 print("Sanity check: Trainable Encoder")
 print("Expected: True; Actual: {}".format(estimation_model.layers[1].trainable))
-print("Freezing encoder and compiling confidence net...")
+print("Freezing encoder (for test) and compiling confidence net...")
 confidence = conf_net(encoding)
 confidence_model= Model(inp,confidence)
 i=0
@@ -320,20 +334,31 @@ for layer in confidence_model.layers:
 confidence_model.compile(optimizer="adam", loss="binary_crossentropy")
 print("Done!")
 print("Sanity check: Freezed Encoder")
-print(confidence_model.layers)
 print("Confidence model:")
 print(confidence_model.summary())
+print(confidence_model.layers)
 print("Estimation model:")
+print(estimation_model.layers)
 print(estimation_model.summary())
 print("Expected: False; Actual: {}".format(confidence_model.layers[1].trainable))
-print("Expected: True; Actual: {}".format(estimation_model.layers[1].trainable))
+print("Expected: False; Actual: {}".format(estimation_model.layers[1].trainable))
 print("==============================================")
 print("Training confidence net and fine-tuning estimation net:")
 for l in range(50):
 
 	print("---------------------------------------------")
 	print("Training confidence net:")
-	i = 0 
+
+	print("Freezing encoder and compiling confidence net...")
+	confidence = conf_net(encoding)
+	confidence_model= Model(inp,confidence)
+	i=0
+	for layer in confidence_model.layers:
+		if i < 21:
+			layer.trainable=False
+			print("Freezing {}...".format(layer))
+		i=i+1
+	confidence_model.compile(optimizer="adam", loss="binary_crossentropy") 
 	
 
 	with tf.device('/gpu:0'):
@@ -345,7 +370,7 @@ for l in range(50):
 			print("Epochs: {}".format(epoch) )
 			print("Validation Split: {}".format(val_split) )
 
-			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
+			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=0, callbacks=callbacks, shuffle=True)
 			with open('./conf_history'+str(l), 'wb') as file_pi:
 				pickle.dump(conf_history.history, file_pi)
 
@@ -372,7 +397,14 @@ for l in range(50):
 		#if i < 21: layer.trainable = False
 		#else: break
 		#i=i+1
-
+	print("Unfreezing encoder and compiling estimation net...")
+	i=0
+	for layer in estimation_model.layers:
+		if i < 21:
+			layer.trainable=True
+			print("Unfreezing {}...".format(layer))
+		i=i+1
+	estimation_model.compile(optimizer="adam", loss="mean_squared_error")
 	with tf.device('/gpu:0'):
 		try:
 			print("Dataset shape: (X;Y)")
@@ -382,7 +414,7 @@ for l in range(50):
 			print("Epochs: {}".format(epoch) )
 			print("Validation Split: {}".format(val_split) )
 
-			est_history=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks2, shuffle=True)
+			est_history=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=0, callbacks=callbacks2, shuffle=True)
 			with open('./est_history'+str(l), 'wb') as file_pi:
 				pickle.dump(est_history.history, file_pi)
 			#baseline(Ytest,nn_predictor)
@@ -401,3 +433,5 @@ for l in range(50):
 			break
 			#baseline(Ytest,nn_predictor)
 
+sys.stdout = orig_stdout
+f.close()
