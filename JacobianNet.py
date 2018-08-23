@@ -18,18 +18,19 @@ import os
 from sklearn.metrics import r2_score
 from keras.models import load_model
 import tensorflow as tf
+import pickle
 
 def huber_loss(y_true, y_pred):
-    return tf.losses.huber_loss(y_true,y_pred)
+	return tf.losses.huber_loss(y_true,y_pred)
 
 def compute_r2(Ytest,Xtest,nn_predictor):
-    acc=r2_score(Ytest,nn_predictor.predict(Xtest))
-    print(acc)
-    string=str(datetime.now()).replace(".","").replace(" ","")+'-'+str(round(acc,2))
-    #nn_predictor.save(string+'.model')
-    #shutil.move(string+'.model','./models/'+string+'.model')
-    #print(r2_score(Ytest,nn_predictor.predict(Xtest)))
-    return string
+	acc=r2_score(Ytest,nn_predictor.predict(Xtest))
+	print(acc)
+	string=str(datetime.now()).replace(".","").replace(" ","")+'-'+str(round(acc,2))
+	#nn_predictor.save(string+'.model')
+	#shutil.move(string+'.model','./models/'+string+'.model')
+	#print(r2_score(Ytest,nn_predictor.predict(Xtest)))
+	return string
 
 sys.path.append('/home/alexanderliao/data/GitHub/')
 
@@ -68,127 +69,168 @@ numpy.random.seed(7)
 
 
 def encoder(feed):
-    inp=Input(shape=(len(feed[0,:]),) )
+	inp=Input(shape=(len(feed[0,:]),) )
 
-    f=Dense(32, kernel_initializer='RandomUniform')(inp)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.25)(f)
+	f=Dense(32, kernel_initializer='RandomUniform')(inp)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.25)(f)
 
-    f=Dense(64, input_dim=32, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.25)(f)
+	f=Dense(64, input_dim=32, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.25)(f)
 
-    f=Dense(128, input_dim=64, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.25)(f)
+	f=Dense(128, input_dim=64, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.25)(f)
 
-    f=Dense(256, input_dim=128, kernel_initializer='RandomUniform')(f)
-    #f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.25)(f)
+	f=Dense(256, input_dim=128, kernel_initializer='RandomUniform')(f)
+	#f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.25)(f)
    
-    f=Dense(512, input_dim=256, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
+	f=Dense(512, input_dim=256, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
 
-    f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    
-    f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    return inp, f
+	f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	return inp, f
 
 def conf_net(encoded):
-    f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded.output)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    
-    f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    
-    f=Dense(512, input_dim=1024, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
+	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded.output)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1024, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
 
-    f=Dense(512, input_dim=512, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
+	f=Dense(512, input_dim=512, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
 
-    f=Dense(256, input_dim=512, kernel_initializer='RandomUniform')(f)
-    #f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(256, input_dim=512, kernel_initializer='RandomUniform')(f)
+	#f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
 
-    f=Dense(128, input_dim=256, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(128, input_dim=256, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
-    f=Dense(64, input_dim=128, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(64, input_dim=128, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
-    f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=Dense(1, activation="sigmoid")(f)
-    return f
+	f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=Dense(1, activation="sigmoid")(f)
+	return f
 
 def est_net(encoded):
-    f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    
-    f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
-    
-    f=Dense(512, input_dim=1024, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
+	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1024, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
 
-    f=Dense(512, input_dim=512, kernel_initializer='RandomUniform')(f)
-    f=BatchNormalization()(f)
-    f=PReLU()(f)
-    f=Dropout(0.5)(f)
+	f=Dense(512, input_dim=512, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
 
-    f=Dense(256, input_dim=512, kernel_initializer='RandomUniform')(f)
-    #f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(256, input_dim=512, kernel_initializer='RandomUniform')(f)
+	#f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
-    f=Dense(128, input_dim=256, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(128, input_dim=256, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
-    f=Dense(64, input_dim=128, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=PReLU()(f)
-    #f=Dropout(0.5)(f)
+	f=Dense(64, input_dim=128, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
 
-    f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
-    ##f=BatchNormalization()(f)
-    f=Dense(25, activation="linear")(f)
-    return f
+	f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=Dense(25, activation="linear")(f)
+	return f
 
+
+def est_net_non_encoder(encoded):
+	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded.output)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(512, input_dim=1024, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+
+	f=Dense(512, input_dim=512, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+
+	f=Dense(256, input_dim=512, kernel_initializer='RandomUniform')(f)
+	#f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
+
+	f=Dense(128, input_dim=256, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
+
+	f=Dense(64, input_dim=128, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=PReLU()(f)
+	#f=Dropout(0.5)(f)
+
+	f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
+	##f=BatchNormalization()(f)
+	f=Dense(25, activation="linear")(f)
+	return f
 inp,encoded = encoder(conf_Xtrain)
 encoding = Model(inp, encoded)
 estimation = est_net(encoded)
@@ -232,12 +274,19 @@ with tf.device('/gpu:0'):
 			print("Pretrained model found, loading...")
 			print("  ")
 			encoding=load_model("pretrained.model")
+			inp = encoding.input
 			print("  ")
 		else:
 			print("Pretrained model not found, training...")
-			pretrained_hist=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=500, validation_split=val_split,verbose=1, callbacks=callbacks2, shuffle=True)
+			pretrained_hist=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=100, validation_split=val_split,verbose=1, callbacks=callbacks2, shuffle=True)
 			encoding.save("pretrained.model")
-			json.dump(pretrained_hist, open("./histories/pretrained_hist.json", 'w'))
+			with open('./pretrained_hist', 'wb') as file_pi:
+				pickle.dump(pretrained_hist.history, file_pi)
+			encoding=load_model("pretrained.model")
+			inp = encoding.input
+			estimation = est_net_non_encoder(encoded)
+			estimation_model = Model(inp, estimation)
+			estimation_model.compile(optimizer="adam", loss="mean_squared_error")
 		print("Dataset shape: (X;Y)")
 		print(jacob_Xtrain.shape)
 		print(jacob_Ytrain.shape)
@@ -247,7 +296,7 @@ with tf.device('/gpu:0'):
 
 		#print(type(history))
 		#baseline(Ytest,nn_predictor)
-		print("Estimation net R2:")
+		print("Estimation net R2: (This should be horrible as the decoder is not tuned)")
 		compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
 		#print("Confidence net R2:")
 		#compute_r2(conf_Ytest,conf_Xtest,confidence_model)
@@ -257,16 +306,30 @@ with tf.device('/gpu:0'):
 		compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
 		#compute_r2(conf_Ytest,conf_Xtest,confidence_model)
 		#baseline(Ytest,nn_predictor)
-
+print("Sanity check: Trainable Encoder")
+print("Expected: True; Actual: {}".format(estimation_model.layers[1].trainable))
 print("Freezing encoder and compiling confidence net...")
-encoding.trainable=False
 confidence = conf_net(encoding)
 confidence_model= Model(inp,confidence)
+i=0
+for layer in confidence_model.layers:
+	if i < 21:
+		layer.trainable=False
+		print("Freezing {}...".format(layer))
+	i=i+1
 confidence_model.compile(optimizer="adam", loss="binary_crossentropy")
-
+print("Done!")
+print("Sanity check: Freezed Encoder")
+print(confidence_model.layers)
+print("Confidence model:")
+print(confidence_model.summary())
+print("Estimation model:")
+print(estimation_model.summary())
+print("Expected: False; Actual: {}".format(confidence_model.layers[1].trainable))
+print("Expected: True; Actual: {}".format(estimation_model.layers[1].trainable))
 print("==============================================")
 print("Training confidence net and fine-tuning estimation net:")
-for l in range(10):
+for l in range(50):
 
 	print("---------------------------------------------")
 	print("Training confidence net:")
@@ -283,9 +346,8 @@ for l in range(10):
 			print("Validation Split: {}".format(val_split) )
 
 			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
-
-			print(type(history))
-			json.dump(conf_history, open("./histories/conf_hist"+str(l)+".json", 'w'))
+			with open('./conf_history'+str(l), 'wb') as file_pi:
+				pickle.dump(conf_history.history, file_pi)
 
 			print("Estimation net R2:")
 			compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
@@ -294,7 +356,9 @@ for l in range(10):
 			#json.dump(history.history, open( string+".json", "w" ))
 			#shutil.move(string+'.json','./histories/'+string+'.pickle')
 		except (KeyboardInterrupt, SystemExit):
+			print("Exiting... Confidence net R2:")
 			compute_r2(conf_Ytest,conf_Xtest,confidence_model)
+			break
 
 
 	print("---------------------------------------------")
@@ -319,7 +383,8 @@ for l in range(10):
 			print("Validation Split: {}".format(val_split) )
 
 			est_history=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks2, shuffle=True)
-			json.dump(est_history, open("./histories/est_hist"+str(l)+".json", 'w'))
+			with open('./est_history'+str(l), 'wb') as file_pi:
+				pickle.dump(est_history.history, file_pi)
 			#baseline(Ytest,nn_predictor)
 
 			print("Estimation net R2:")
@@ -329,7 +394,10 @@ for l in range(10):
 			#json.dump(history.history, open( string+".json", "w" ))
 			#shutil.move(string+'.json','./histories/'+string+'.pickle')
 		except (KeyboardInterrupt, SystemExit):
+			print("Exiting... Estimation net R2:")
 			compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
+			print("Exiting... Confidence net R2:")
 			compute_r2(conf_Ytest,conf_Xtest,confidence_model)
+			break
 			#baseline(Ytest,nn_predictor)
 
