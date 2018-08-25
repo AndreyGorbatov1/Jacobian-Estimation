@@ -15,6 +15,7 @@ import keras
 import json
 import sys
 import os
+import pickle
 #a=pd.read_csv('featureTrain.csv' ,dtype='double')
 #print(a)
 
@@ -72,7 +73,7 @@ def nn_1(input_length):
     model.add(PReLU())
     model.add(Dropout(0.5))
     
-    model.add(Dense(512, input_dim=1024, kernel_initializer='RandomUniform'))
+    model.add(Dense(512, input_dim=512, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(PReLU())
     model.add(Dropout(0.5))
@@ -156,6 +157,8 @@ if __name__ == "__main__":
     Xtest=pd.read_csv('data/conf_feature_test.csv' ,dtype='double')
     Xtest=scale(Xtest.dropna(axis=1).loc[:, ~(Xtest == 0).any(0)])
 
+    numpy.savetxt("input_matlab.csv", Xtest, delimiter=",")
+
 
     #Xtest=Xtest.reshape((-1,1,len(Xtest[0,:]),1))
 
@@ -164,6 +167,9 @@ if __name__ == "__main__":
 
     Ytest=pd.read_csv('data/conf_label_test.csv' ,dtype='double').dropna(axis=1)
     print("Done!")
+
+    numpy.savetxt("out_matlab.csv", Ytest, delimiter=",")
+
     #Ytest=Ytest.values.reshape((-1,1))
 
     #Ytest=Ytest[0:k,:]
@@ -171,6 +177,7 @@ if __name__ == "__main__":
     # fix random seed for reproducibility
     numpy.random.seed(7)
     print("Seed: {}".format(numpy.random.get_state()[0][1]))
+
     #Xtrain=numpy.nonzero(numpy.loadtxt('featureTrain.csv',dtype='float32',delimiter=','))
     #Ytrain=numpy.loadtxt('labelTrain.csv',dtype='float32',delimiter=',')
     #Xtrain=Xtrain[1:30000,:]
@@ -197,46 +204,49 @@ if __name__ == "__main__":
     #print(nn_predictor.input_shape)
     #print(nn_predictor.output_shape)
 
-    opt = optimizers.RMSprop(lr=0.01)
+    if True:
+        opt = optimizers.RMSprop(lr=0.01)
 
-    #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
 
-    nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor = nn_1(len(Xtrain[0,:]))
 
-    print(nn_predictor.summary())
+        print(nn_predictor.summary())
 
-    print("Cleaning directories...")
-    os.system("rm -r graph")
-    os.system("mkdir graph")
+        print("Cleaning directories...")
+        os.system("rm -r graph")
+        os.system("mkdir graph")
 
-    b_size = 8192
-    epoch = 500
-    val_split = 0.05
+        b_size = 4096
+        epoch = 750
+        val_split = 0.05
 
 
 
-    early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
-    model_checkpoint = keras.callbacks.ModelCheckpoint("./conf_baseline.model", save_best_only=True, verbose=1)
-    reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
-    tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
-    callbacks = [early_stopping,model_checkpoint,reduce_lr,tensorboard]
+        #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./conf_baseline.model", save_best_only=True, verbose=1)
+        #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
+        tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
+        callbacks = [model_checkpoint,tensorboard]
 
-    with tf.device('/gpu:0'):
-        try:
-            print(Ytrain.shape)
-            print(Xtrain.shape)
-            print("Batch Size: {}".format(b_size) )
-            print("Epochs: {}".format(epoch) )
-            print("Validation Split: {}".format(val_split) )
+        with tf.device('/gpu:0'):
+            try:
+                print(Ytrain.shape)
+                print(Xtrain.shape)
+                print("Batch Size: {}".format(b_size) )
+                print("Epochs: {}".format(epoch) )
+                print("Validation Split: {}".format(val_split) )
 
-            history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
-            
-            print(type(history))
-            string=routine(Ytest,nn_predictor)
-            #json.dump(history.history, open( string+".json", "w" ))
-            #shutil.move(string+'.json','./histories/'+string+'.pickle')
-        except (KeyboardInterrupt, SystemExit):
-            routine(Ytest,nn_predictor)
+                history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
+                nn_predictor.save("./conf_baseline.model")
+                with open('./conf_hist', 'wb') as file_pi:
+                    pickle.dump(history.history, file_pi)
+                print(type(history))
+                string=routine(Ytest,nn_predictor)
+                #json.dump(history.history, open( string+".json", "w" ))
+                #shutil.move(string+'.json','./histories/'+string+'.pickle')
+            except (KeyboardInterrupt, SystemExit):
+                routine(Ytest,nn_predictor)
 
 
 

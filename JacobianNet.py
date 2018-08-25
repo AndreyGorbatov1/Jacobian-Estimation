@@ -22,9 +22,9 @@ import pickle
 
 import sys
 
-orig_stdout = sys.stdout
-f = open('JacobNet_training_log.txt', 'w')
-sys.stdout = f
+#orig_stdout = sys.stdout
+#f = open('JacobNet_training_log.txt', 'w')
+#sys.stdout = f
 
 def huber_loss(y_true, y_pred):
 	return tf.losses.huber_loss(y_true,y_pred)
@@ -115,9 +115,30 @@ def encoder(feed):
 	f=BatchNormalization()(f)
 	f=PReLU()(f)
 	f=Dropout(0.5)(f)
+
+	f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+
 	return inp, f
 
 def conf_net(encoded):
+	"""
+	f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(encoded.output)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	"""
+
 	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded.output)
 	f=BatchNormalization()(f)
 	f=PReLU()(f)
@@ -160,6 +181,16 @@ def conf_net(encoded):
 	return f
 
 def est_net(encoded):
+	"""
+	f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(encoded)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	"""
 	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded)
 	f=BatchNormalization()(f)
 	f=PReLU()(f)
@@ -202,6 +233,16 @@ def est_net(encoded):
 
 
 def est_net_non_encoder(encoded):
+	"""
+	f=Dense(1050, input_dim=512, kernel_initializer='RandomUniform')(encoded.output)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	f=Dropout(0.5)(f)
+	
+	f=Dense(2150, input_dim=1050, kernel_initializer='RandomUniform')(f)
+	f=BatchNormalization()(f)
+	f=PReLU()(f)
+	"""
 	f=Dense(1050, input_dim=2150, kernel_initializer='RandomUniform')(encoded.output)
 	f=BatchNormalization()(f)
 	f=PReLU()(f)
@@ -239,7 +280,7 @@ def est_net_non_encoder(encoded):
 
 	f=Dense(32, input_dim=64, kernel_initializer='RandomUniform')(f)
 	##f=BatchNormalization()(f)
-	f=Dense(25, activation="linear")(f)
+	f=Dense(22, activation="linear")(f)
 	return f
 inp,encoded = encoder(conf_Xtrain)
 encoding = Model(inp, encoded)
@@ -268,11 +309,11 @@ early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
 model_checkpoint = keras.callbacks.ModelCheckpoint("./intm.model", save_best_only=True, verbose=1)
 reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=10, min_lr=0.00001, verbose=1)
 tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
-callbacks = [early_stopping,model_checkpoint,tensorboard]
+callbacks = [model_checkpoint,tensorboard]
 
 
 model_checkpoint2 = keras.callbacks.ModelCheckpoint("./pretrained_checkpt.model", save_best_only=True, verbose=1)
-callbacks2 = [early_stopping,model_checkpoint2,tensorboard]
+callbacks2 = [model_checkpoint2,tensorboard]
 
 print("==============================================")
 print("Start training: check progress by entering: tensorboard --logdir ./graph --port 6028")
@@ -322,7 +363,7 @@ estimation_model.compile(optimizer="adam", loss="mean_squared_error")
 
 print("Sanity check: Trainable Encoder")
 print("Expected: True; Actual: {}".format(estimation_model.layers[1].trainable))
-print("Freezing encoder (for test) and compiling confidence net...")
+print("Freezing encoder and compiling confidence net...")
 confidence = conf_net(encoding)
 confidence_model= Model(inp,confidence)
 i=0
@@ -342,13 +383,43 @@ print(estimation_model.layers)
 print(estimation_model.summary())
 print("Expected: False; Actual: {}".format(confidence_model.layers[1].trainable))
 print("Expected: False; Actual: {}".format(estimation_model.layers[1].trainable))
-print("==============================================")
-print("Training confidence net and fine-tuning estimation net:")
-for l in range(50):
 
+print("==============================================")
+print("Fitting confidence net to pretrained encoder:")
+with tf.device('/gpu:0'):
+    try:
+        print("Dataset shape: (X;Y)")
+        print(conf_Xtrain.shape)
+        print(conf_Ytrain.shape)
+        print("Batch Size: {}".format(b_size) )
+        print("Epochs: {}".format(epoch) )
+        print("Validation Split: {}".format(val_split) )
+
+        conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size*2, epochs=20, validation_split=val_split,verbose=0, callbacks=callbacks, shuffle=True)
+        with open('./conf_history_pretrained', 'wb') as file_pi:
+            pickle.dump(conf_history.history, file_pi)
+
+        #print("Estimation net R2:")
+        #compute_r2(jacob_Ytest,jacob_Xtest,estimation_model)
+        print("Confidence net R2:")
+        compute_r2(conf_Ytest,conf_Xtest,confidence_model)
+        #json.dump(history.history, open( string+".json", "w" ))
+        #shutil.move(string+'.json','./histories/'+string+'.pickle')
+    except (KeyboardInterrupt, SystemExit):
+        print("Exiting... Confidence net R2:")
+        compute_r2(conf_Ytest,conf_Xtest,confidence_model)
+
+
+print("==============================================")
+print("Fine-tuning")
+for l in range(50):
+	print("=============================================")
+	print("Step {} out of 50:".format(l))
+	print("=============================================")
 	print("---------------------------------------------")
 	print("Training confidence net:")
 
+	
 	print("Freezing encoder and compiling confidence net...")
 	confidence = conf_net(encoding)
 	confidence_model= Model(inp,confidence)
@@ -370,7 +441,7 @@ for l in range(50):
 			print("Epochs: {}".format(epoch) )
 			print("Validation Split: {}".format(val_split) )
 
-			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=0, callbacks=callbacks, shuffle=True)
+			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch*2, validation_split=val_split,verbose=0, callbacks=callbacks, shuffle=True)
 			with open('./conf_history'+str(l), 'wb') as file_pi:
 				pickle.dump(conf_history.history, file_pi)
 
@@ -397,6 +468,7 @@ for l in range(50):
 		#if i < 21: layer.trainable = False
 		#else: break
 		#i=i+1
+
 	print("Unfreezing encoder and compiling estimation net...")
 	i=0
 	for layer in estimation_model.layers:
@@ -405,6 +477,7 @@ for l in range(50):
 			print("Unfreezing {}...".format(layer))
 		i=i+1
 	estimation_model.compile(optimizer="adam", loss="mean_squared_error")
+	
 	with tf.device('/gpu:0'):
 		try:
 			print("Dataset shape: (X;Y)")
@@ -432,6 +505,10 @@ for l in range(50):
 			compute_r2(conf_Ytest,conf_Xtest,confidence_model)
 			break
 			#baseline(Ytest,nn_predictor)
-
-sys.stdout = orig_stdout
-f.close()
+print("=============================================")
+print("Training finished, saving models.....")
+estimation_model.save("shared_estimaiton.model")
+confidence_model.save("shared_confidence.model")
+encoding.save("shared_encoder.model")
+#sys.stdout = orig_stdout
+#f.close()

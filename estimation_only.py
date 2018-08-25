@@ -240,7 +240,9 @@ if __name__ == "__main__":
 	        print("Validation Split: {}".format(val_split) )
 
 	        history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=[callback], shuffle=True)
-	        
+	        nn_predictor.save("jacob_baseline.hdf5")
+	        with open('./est_hist', 'wb') as file_pi:
+                    pickle.dump(history.history, file_pi)
 	        print(type(history))
 	        #baseline(Ytest,nn_predictor)
 	        string=routine(Ytest,nn_predictor)
