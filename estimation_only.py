@@ -15,6 +15,7 @@ import keras
 import json
 import sys
 import os
+import pickle
 from sklearn.metrics import r2_score
 #a=pd.read_csv('featureTrain.csv' ,dtype='double')
 #print(a)
@@ -222,13 +223,19 @@ if __name__ == "__main__":
 	print(len(Xtrain[0,:]))
 	print(nn_predictor.summary())
 
-	print("Cleaning directories...")
-	os.system("rm -r graph")
-	os.system("mkdir graph")
+	#print("Cleaning directories...")
+	#os.system("rm -r graph")
+	#os.system("mkdir graph")
 
 	b_size = 4096
 	epoch = 750
 	val_split = 0.2
+
+	#early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+	model_checkpoint = keras.callbacks.ModelCheckpoint("./est_baseline.model", save_best_only=True, verbose=1)
+	#reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
+	tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
+	callbacks = [model_checkpoint,tensorboard]
 
 	with tf.device('/gpu:0'):
 	    try:
@@ -239,8 +246,8 @@ if __name__ == "__main__":
 	        print("Epochs: {}".format(epoch) )
 	        print("Validation Split: {}".format(val_split) )
 
-	        history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=[callback], shuffle=True)
-	        nn_predictor.save("jacob_baseline.hdf5")
+	        history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
+	        nn_predictor.save("est_baseline.model")
 	        with open('./est_hist', 'wb') as file_pi:
                     pickle.dump(history.history, file_pi)
 	        print(type(history))
