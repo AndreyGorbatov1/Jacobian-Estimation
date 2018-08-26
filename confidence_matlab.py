@@ -45,7 +45,7 @@ def nn_1(input_length):
     model.add(LeakyReLU())
     #model.add(Dropout(0.25))
 
-    
+
     model.add(Dense(512, input_dim=256, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
@@ -57,7 +57,7 @@ def nn_1(input_length):
     model.add(LeakyReLU())
     model.add(Dropout(0.5))
 
-    
+
     model.add(Dense(2100, input_dim=1050, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
@@ -67,12 +67,12 @@ def nn_1(input_length):
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     model.add(Dropout(0.5))
-    
+
     model.add(Dense(512, input_dim=1050, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
     model.add(Dropout(0.5))
-    
+
     model.add(Dense(512, input_dim=1024, kernel_initializer='RandomUniform'))
     model.add(BatchNormalization())
     model.add(LeakyReLU())
@@ -103,7 +103,7 @@ def nn_1(input_length):
     ##model.add(BatchNormalization())
     model.add(Dense(1, activation="sigmoid"))
 
-    #Dense(64, input_dim=24, kernel_initializer="RandomUniform")`    
+    #Dense(64, input_dim=24, kernel_initializer="RandomUniform")`
     opt = optimizers.SGD(lr=0.001, momentum=0.9, decay=0.0001, nesterov=False)
 
     model.compile(optimizer="adam", loss="binary_crossentropy")
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     #Ytrain=numpy.loadtxt('labelTrain.csv',dtype='float32',delimiter=',')
     #Xtrain=Xtrain[1:30000,:]
     #Ytrain=Ytrain[1:30000,:]
-    #Ｙtrain=minmax_scale(Ytrain, feature_range=(0, 1), axis=0, copy=True)
+    #Ytrain=minmax_scale(Ytrain, feature_range=(0, 1), axis=0, copy=True)
     #Xtrain=normalize(Xtrain,axis=1)
     #Xtrain = scale( Xtrain, axis=0, with_mean=True, with_std=True, copy=True )
     #Ytrain = scale( Ytrain, axis=0, with_mean=True, with_std=True, copy=True )
@@ -192,7 +192,7 @@ if __name__ == "__main__":
     #Ytest=numpy.loadtxt('labelTest.csv',dtype='float32',delimiter=',')
     #Xtest=Xtest[1:30000,:]
     #Ytest=Ytest[1:30000,:]
-    #Ｙtest=minmax_scale(Ytest, feature_range=(0, 1), axis=0, copy=True)
+    #Ytest=minmax_scale(Ytest, feature_range=(0, 1), axis=0, copy=True)
     #Xtest=normalize(Xtest,axis=1)
     #Xtest = scale( Xtest, axis=0, with_mean=True, with_std=True, copy=True )
     #Ytest = scale( Ytest, axis=0, with_mean=True, with_std=True, copy=True )
