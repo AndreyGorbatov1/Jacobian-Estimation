@@ -30,7 +30,7 @@ import pickle
 from estimation_only import nn_1
 
 
-sys.path.append('/home/alexanderliao/data/GitHub/')
+sys.path.append('/mydisk/Programming/Git/')
 
 def dice_coef(y_true, y_pred):
     y_true_f = K.flatten(y_true)
@@ -172,7 +172,7 @@ if True:
 	print("Neural Network: (Threshold 0.5)")
 	print(" ")
 	print(" ")
-	clf = load_model("conf_baseline.model")
+	clf = load_model("paper_models/conf_baseline/conf_baseline.model")
 	print(" ")
 	print(" ")
 	class_evaluate_model_threshold()

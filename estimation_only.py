@@ -25,7 +25,7 @@ def huber_loss(y_true, y_pred):
     return tf.losses.huber_loss(y_true,y_pred)
 
 sys.path.append('/home/alexanderliao/data/GitHub/')
-from kerasresnet import resnet
+#from kerasresnet import resnet
 
 
 def nn_1(input_length):
