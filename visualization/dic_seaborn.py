@@ -23,7 +23,6 @@ def plot():
     loss.set(xlabel='Epoch', ylabel='Loss (log scale)')
     val_loss.set(xlabel='Epoch', ylabel='Loss (log scale)')
 
-    plt.legend()
     plt.subplot(loss)
     plt.subplot(val_loss)
     plt.show()
