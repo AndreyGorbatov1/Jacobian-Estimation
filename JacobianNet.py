@@ -299,7 +299,7 @@ print("Cleaning directories...")
 os.system("rm -r graph")
 os.system("mkdir graph")
 
-b_size = 4096
+b_size = 2048
 epoch = 25
 val_split = 0.2
 
@@ -315,6 +315,10 @@ callbacks = [model_checkpoint,tensorboard]
 model_checkpoint2 = keras.callbacks.ModelCheckpoint("./pretrained_checkpt.model", save_best_only=True, verbose=1)
 callbacks2 = [model_checkpoint2,tensorboard]
 
+model_checkpoint3 = keras.callbacks.ModelCheckpoint("./intm_est.model", save_best_only=True, verbose=1)
+model_checkpoint4 = keras.callbacks.ModelCheckpoint("./intm_conf.model", save_best_only=True, verbose=1)
+callbacks3 = [model_checkpoint3,tensorboard]
+callbacks4 = [model_checkpoint4,tensorboard]
 print("==============================================")
 print("Start training: check progress by entering: tensorboard --logdir ./graph --port 6028")
 print("---------------------------------------------")
@@ -410,11 +414,12 @@ with tf.device('/gpu:0'):
         compute_r2(conf_Ytest,conf_Xtest,confidence_model)
 
 
+epoch = 10
 print("==============================================")
 print("Fine-tuning")
-for l in range(50):
+for l in range(30):
 	print("=============================================")
-	print("Step {} out of 50:".format(l))
+	print("Step {} out of 30:".format(l))
 	print("=============================================")
 	print("---------------------------------------------")
 	print("Training confidence net:")
@@ -441,7 +446,7 @@ for l in range(50):
 			print("Epochs: {}".format(epoch) )
 			print("Validation Split: {}".format(val_split) )
 
-			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch*2, validation_split=val_split,verbose=0, callbacks=callbacks, shuffle=True)
+			conf_history=confidence_model.fit(conf_Xtrain,conf_Ytrain, batch_size=b_size, epochs=epoch*2, validation_split=val_split,verbose=0, callbacks=callbacks4, shuffle=True)
 			with open('./conf_history'+str(l), 'wb') as file_pi:
 				pickle.dump(conf_history.history, file_pi)
 
@@ -487,7 +492,7 @@ for l in range(50):
 			print("Epochs: {}".format(epoch) )
 			print("Validation Split: {}".format(val_split) )
 
-			est_history=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=0, callbacks=callbacks2, shuffle=True)
+			est_history=estimation_model.fit(jacob_Xtrain,jacob_Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=0, callbacks=callbacks4, shuffle=True)
 			with open('./est_history'+str(l), 'wb') as file_pi:
 				pickle.dump(est_history.history, file_pi)
 			#baseline(Ytest,nn_predictor)
