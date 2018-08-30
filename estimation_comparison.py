@@ -101,7 +101,11 @@ def nn_1(input_length):
 
     model.add(Dense(32, input_dim=64, kernel_initializer='RandomUniform'))
     ##model.add(BatchNormalization())
+<<<<<<< HEAD
     model.add(Dense(25, activation="linear"))
+=======
+    model.add(Dense(1, activation="sigmoid"))
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
     #Dense(64, input_dim=24, kernel_initializer="RandomUniform")`
     opt = optimizers.SGD(lr=0.001, momentum=0.9, decay=0.0001, nesterov=False)
@@ -130,8 +134,15 @@ if __name__ == "__main__":
     Xtest=scale(pd.read_csv('featureTest.csv' ,dtype='double').dropna(axis=1),axis=0)
     Ytest=pd.read_csv('labelTest.csv' ,dtype='double').dropna(axis=1)
     """
+<<<<<<< HEAD
     print("Reading training data...")
     Xtrain=pd.read_csv('data/jacob_feature_train.csv' ,dtype='double')
+=======
+    k=10000
+
+    print("Reading training data...")
+    Xtrain=pd.read_csv('data/conf_feature_train.csv' ,dtype='double')
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
     Xtrain=scale(Xtrain.dropna(axis=1).loc[:, ~(Xtrain == 0).any(0)])
 
     #Xtrain=Xtrain[0:k,:]
@@ -139,6 +150,7 @@ if __name__ == "__main__":
     #Xtrain=Xtrain.reshape((-1,1,len(Xtrain[0,:]),1))
 
     #Xtrain=Xtrain.reshape((k,2,-1,1))
+<<<<<<< HEAD
 
     print(" ")
     print("Sanity Check:")
@@ -157,15 +169,43 @@ if __name__ == "__main__":
 
     numpy.savetxt("input_matlab_jacob.csv", Xtest, delimiter=",")
 
+=======
+    print(" ")
+    print("Sanity Check:")
+    print(Xtrain)
+    Ytrain=pd.read_csv('data/conf_label_train.csv' ,dtype='double').dropna(axis=1)
+
+
+    print("Done!")
+    #Ytrain=Ytrain.values.reshape((-1,1))
+
+    #Ytrain=Ytrain[0:k,:]
+
+
+    print("Reading test data...")
+    Xtest=pd.read_csv('data/conf_feature_test.csv' ,dtype='double')
+    Xtest=scale(Xtest.dropna(axis=1).loc[:, ~(Xtest == 0).any(0)])
+
+    numpy.savetxt("input_matlab.csv", Xtest, delimiter=",")
+
+
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
     #Xtest=Xtest.reshape((-1,1,len(Xtest[0,:]),1))
 
 
     #Xtest=Xtest.reshape((300,2,-1,1))
 
+<<<<<<< HEAD
     Ytest=pd.read_csv('data/jacob_label_test.csv' ,dtype='double').dropna(axis=1)
     Ytest=minmax_scale(Ytest.loc[:, ~(Ytest == 0).any(0)],feature_range=(-1,1))
     print("Done!")
     numpy.savetxt("out_matlab_jacob.csv", Ytest, delimiter=",")
+=======
+    Ytest=pd.read_csv('data/conf_label_test.csv' ,dtype='double').dropna(axis=1)
+    print("Done!")
+
+    numpy.savetxt("out_matlab.csv", Ytest, delimiter=",")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
     #Ytest=Ytest.values.reshape((-1,1))
 
@@ -203,10 +243,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "adam"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "adam"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -221,7 +268,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -236,7 +287,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
@@ -248,10 +303,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "sgd"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "sgd"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -266,7 +328,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -281,7 +347,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
@@ -293,10 +363,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "rmsprop"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "rmsprop"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -311,7 +388,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -326,7 +407,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
@@ -337,10 +422,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "adagrad"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "adagrad"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -355,7 +447,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -370,7 +466,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
@@ -381,10 +481,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "nadam"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "nadam"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -399,7 +506,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -414,7 +525,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
@@ -425,10 +540,17 @@ if __name__ == "__main__":
 
     if True:
 
+<<<<<<< HEAD
         #nn_predictor.compile(optimizer="adadelta", loss="mean_squared_error")
         model = "adamax"
         nn_predictor = nn_1(len(Xtrain[0,:]))
         nn_predictor.compile(optimizer=model, loss="mean_squared_error")
+=======
+        #nn_predictor.compile(optimizer="adadelta", loss="binary_crossentropy")
+        model = "adamax"
+        nn_predictor = nn_1(len(Xtrain[0,:]))
+        nn_predictor.compile(optimizer=model, loss="binary_crossentropy")
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
 
         print(nn_predictor.summary())
 
@@ -443,7 +565,11 @@ if __name__ == "__main__":
 
 
         #early_stopping = keras.callbacks.EarlyStopping(patience=50, verbose=1)
+<<<<<<< HEAD
         model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/est_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+=======
+        model_checkpoint = keras.callbacks.ModelCheckpoint("./paper_models/conf_comparison/conf_"+model+".model", save_best_only=True, verbose=1)
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
         #reduce_lr = keras.callbacks.ReduceLROnPlateau(factor=0.1, patience=5, min_lr=0.00001, verbose=1)
         tensorboard=keras.callbacks.TensorBoard(log_dir='./graph', histogram_freq=0, write_graph=True, write_images=True)
         callbacks = [model_checkpoint,tensorboard]
@@ -458,7 +584,11 @@ if __name__ == "__main__":
 
                 history=nn_predictor.fit(Xtrain,Ytrain, batch_size=b_size, epochs=epoch, validation_split=val_split,verbose=1, callbacks=callbacks, shuffle=True)
                 #nn_predictor.save("./conf_baseline.model")
+<<<<<<< HEAD
                 with open('./paper_models/est_comparison/est_'+model+'_hist', 'wb') as file_pi:
+=======
+                with open('./paper_models/conf_comparison/conf_'+model+'_hist', 'wb') as file_pi:
+>>>>>>> 4f19ba6fa1f1e05efd2ed75d2d0f31dcf88e2552
                     pickle.dump(history.history, file_pi)
                 print(type(history))
                 string=routine(Ytest,nn_predictor)
